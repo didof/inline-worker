@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inline Worker Demo</title>
+
+    <script id="worker" type="javascript/worker">
+      self.onmessage = function(event) {
+          console.log('[WORKER] Received message from main thread: ' + event.data)
+          if(Math.random() < 0.5) {
+            self.postMessage(1 / x)
+            return
+          }
+          self.postMessage(event.data)
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Inline Worker Demo</h1>
+
+    <p>See all create blob URLs at <code>chrome://blob-internals</code></p>
+
+    <label for="worker-message">Worker Message</label>
+    <br />
+    <input type="text" id="worker-message" />
+    <button id="spawn-worker-button">Spawn worker</button>
+
+    <div>
+      <h2>Logs</h2>
+      <ul id="DOM-logs"></ul>
+    </div>
+
+    <script>
+      const DOMLogs = document.getElementById('DOM-logs')
+
+      const workerTextContent = document.getElementById('worker').textContent
+      const blob = new Blob([workerTextContent])
+      const blobURL = window.URL.createObjectURL(blob)
+      DOMLog('Worker stored in Blob object. Referenced via URL at ' + blobURL)
+
+      const worker = new Worker(blobURL)
+      worker.addEventListener('message', messageHandler, false)
+      worker.addEventListener('error', errorHandler, false)
+
+      function messageHandler(event) {
+        DOMLog('Received message from worker: ' + event.data)
+
+        window.URL.revokeObjectURL(blobURL)
+        DOMLog('Released blob URL')
+      }
+
+      function errorHandler({ lineno, filename, message }) {
+        DOMLog(`Error in worker at line ${lineno} in ${filename}: ${message}`)
+      }
+
+      const spawnWorkerButton = document.getElementById('spawn-worker-button')
+      const spawnWorkerButtonBroken = document.getElementById(
+        'spawn-worker-button--broken'
+      )
+
+      spawnWorkerButton.addEventListener('click', spawnWorker, false)
+      const workerMessage = document.getElementById('worker-message')
+
+      function spawnWorker() {
+        spawnWorkerButton.removeEventListener('click', spawnWorker, false)
+        worker.postMessage(workerMessage.value)
+        spawnWorkerButton.disabled = true
+        workerMessage.disabled = true
+      }
+
+      function DOMLog(text) {
+        const fragment = document.createDocumentFragment()
+        const li = document.createElement('li')
+        li.appendChild(document.createTextNode(text))
+        DOMLogs.appendChild(li)
+      }
+    </script>
+  </body>
+</html>
