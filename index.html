@@ -8,11 +8,11 @@
     <script id="worker" type="javascript/worker">
       self.onmessage = function(event) {
           console.log('[WORKER] Received message from main thread: ' + event.data)
-          if(Math.random() < 0.5) {
+          if(event.data === 'boom') {
             self.postMessage(1 / x)
-            return
+          } else {
+            self.postMessage(event.data)
           }
-          self.postMessage(event.data)
       }
     </script>
   </head>
